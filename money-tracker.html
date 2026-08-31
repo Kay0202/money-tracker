@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Money Tracker</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --bg2: #181c27;
+    --bg3: #1e2330;
+    --border: #2a2f3d;
+    --text: #e8eaf0;
+    --text2: #8b90a0;
+    --accent: #5b8dee;
+    --accent2: #3d6dd4;
+    --green: #3ecf8e;
+    --red: #f06a6a;
+    --yellow: #f0b429;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(15,17,23,0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    padding: 0 16px;
+  }
+
+  nav button {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text2);
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 14px 8px;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.2s;
+    letter-spacing: 0.01em;
+  }
+
+  nav button.active {
+    color: var(--accent);
+  }
+
+  nav button.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 20%;
+    right: 20%;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 2px 2px 0 0;
+  }
+
+  /* ── TABS ── */
+  .tab { display: none; padding: 20px 16px 80px; animation: fadeIn 0.18s ease; }
+  .tab.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.1;
+  }
+
+  .stat-sub {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+
+  .stat-card.wide {
+    grid-column: 1 / -1;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 20px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    min-height: 44px;
+    text-align: center;
+  }
+
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-success { background: var(--green); color: #111; }
+  .btn-full { width: 100%; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* ── FORM ELEMENTS ── */
+  textarea, input[type="text"], input[type="file"], select {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    padding: 12px 14px;
+    transition: border-color 0.2s;
+    outline: none;
+    min-height: 44px;
+  }
+
+  textarea:focus, input[type="text"]:focus {
+    border-color: var(--accent);
+  }
+
+  textarea { resize: vertical; min-height: 120px; }
+
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 13px; color: var(--text2); margin-bottom: 6px; display: block; }
+
+  /* ── SECTION HEADINGS ── */
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    margin-top: 24px;
+  }
+
+  .section-title:first-child { margin-top: 0; }
+
+  /* ── SUBMIT TAB ── */
+  .image-upload-area {
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    position: relative;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text2);
+    font-size: 13px;
+  }
+
+  .image-upload-area:hover { border-color: var(--accent); color: var(--text); }
+  #imageInput { display: none; }
+
+  .preview-list {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-top: 14px;
+  }
+
+  .preview-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+  }
+
+  .preview-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .preview-item:first-child { padding-top: 0; }
+
+  .preview-item-info { flex: 1; min-width: 0; }
+  .preview-item-label { font-size: 14px; font-weight: 500; }
+  .preview-item-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .preview-item-amount { font-size: 16px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+
+  .cat-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--bg3);
+    color: var(--text2);
+    margin-left: 6px;
+  }
+
+  /* ── STATUS / ALERTS ── */
+  .alert {
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    margin-bottom: 14px;
+  }
+
+  .alert-error { background: rgba(240,106,106,0.12); border: 1px solid rgba(240,106,106,0.3); color: #f09090; }
+  .alert-success { background: rgba(62,207,142,0.12); border: 1px solid rgba(62,207,142,0.3); color: var(--green); }
+  .alert-info { background: rgba(91,141,238,0.12); border: 1px solid rgba(91,141,238,0.3); color: #8ab0f0; }
+  .alert-warning { background: rgba(240,180,41,0.12); border: 1px solid rgba(240,180,41,0.3); color: var(--yellow); }
+
+  .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── DATA TAB ── */
+  .search-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .search-bar input { flex: 1; }
+  .search-bar select { width: auto; min-width: 120px; }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .data-table th {
+    text-align: left;
+    padding: 8px 10px;
+    color: var(--text2);
+    font-weight: 500;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table td {
+    padding: 10px 10px;
+    border-bottom: 1px solid rgba(42,47,61,0.5);
+    vertical-align: top;
+  }
+
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table .amount-col { text-align: right; font-weight: 600; color: var(--accent); }
+  .table-scroll { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg2); }
+
+  /* Summary table */
+  .summary-table th, .summary-table td { font-size: 12px; padding: 8px 8px; }
+  .summary-table td:not(:first-child) { text-align: right; }
+  .summary-row-month { font-weight: 600; }
+
+  /* Collapsible food row */
+  .food-parent { cursor: pointer; user-select: none; }
+  .food-parent:hover td { color: var(--accent); }
+  .food-child { background: rgba(91,141,238,0.04); }
+  .food-child td:first-child { padding-left: 22px; }
+  .food-child { display: none; }
+  .food-child.expanded { display: table-row; }
+  .toggle-arrow { display: inline-block; transition: transform 0.2s; margin-right: 4px; }
+  .toggle-arrow.open { transform: rotate(90deg); }
+
+  /* ── MONTH CHART ── */
+  .chart-wrap { overflow-x: auto; margin-top: 8px; }
+
+  /* ── MODALS ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .modal-overlay.show {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 24px;
+    width: 100%;
+    max-width: 440px;
+    transform: translateY(12px);
+    transition: transform 0.2s;
+  }
+
+  .modal-overlay.show .modal { transform: none; }
+  .modal h2 { font-size: 20px; margin-bottom: 8px; }
+  .modal p { color: var(--text2); font-size: 14px; margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-actions .btn { flex: 1; }
+
+  /* ── NIGHT OUT OVERLAY ── */
+  #nightOutOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+  }
+
+  #nightOutOverlay.show { display: flex; }
+  #nightOutOverlay.good { background: linear-gradient(160deg, #0a2e1e 0%, #0f3d28 40%, #133322 100%); }
+  #nightOutOverlay.neutral { background: linear-gradient(160deg, #0f111a 0%, #171b28 100%); }
+
+  .night-out-content { max-width: 360px; position: relative; z-index: 1; }
+  .night-emoji { font-size: 56px; margin-bottom: 16px; }
+  .night-headline { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 12px; line-height: 1; }
+  .night-good .night-headline { color: var(--green); }
+  .night-neutral .night-headline { color: var(--text); }
+  .night-sub { font-size: 18px; color: var(--text2); margin-bottom: 36px; line-height: 1.4; }
+  .night-good .night-sub span { color: var(--green); font-weight: 600; }
+
+  #gotItBtn {
+    padding: 16px 48px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    border-radius: 50px;
+    cursor: pointer;
+    font-family: var(--font);
+    transition: background 0.15s;
+  }
+
+  #gotItBtn:hover { background: rgba(255,255,255,0.2); }
+
+  /* Confetti */
+  .confetti-piece {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    animation: confettiFall var(--dur) var(--delay) ease-in both;
+    z-index: 299;
+  }
+
+  @keyframes confettiFall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* ── SETUP MODAL ── */
+  #setupOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 400;
+    background: var(--bg);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  #setupOverlay.show { display: flex; }
+
+  .setup-box {
+    max-width: 420px;
+    width: 100%;
+  }
+
+  .setup-box h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+  .setup-box .setup-sub { color: var(--text2); font-size: 14px; margin-bottom: 28px; }
+
+  .api-key-info {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text2);
+  }
+
+  .empty-state-icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-state-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .empty-state-desc { font-size: 13px; }
+
+  /* ── IMAGE PREVIEW STRIP ── */
+  #imagePreviewStrip {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .img-thumb {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+
+  /* ── MISC ── */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  .data-footer {
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .link-btn {
+    background: none;
+    border: none;
+    color: var(--text2);
+    font-family: var(--font);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 4px 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .link-btn:hover { color: var(--accent); }
+
+  .row-flex { display: flex; gap: 10px; }
+  .row-flex .btn { flex: 1; }
+
+  .loading-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text2);
+    font-size: 14px;
+    padding: 14px 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .confetti-piece, .spinner { animation: none; }
+    .tab { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     SETUP OVERLAY (API Key)
+════════════════════════════════════════ -->
+<div id="setupOverlay">
+  <div class="setup-box">
+    <h1>Money Tracker</h1>
+    <p class="setup-sub">Paste your Anthropic API key to get started. It stays on your device — never sent anywhere except directly to Anthropic.</p>
+    <div class="form-group">
+      <label class="form-label" for="apiKeyInput">Anthropic API Key</label>
+      <input type="text" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+      <p class="api-key-info">Get one at console.anthropic.com · Stored in your browser's localStorage only</p>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveApiKey()">Save & Continue</button>
+    <div id="setupError" style="margin-top:12px;display:none;"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     NIGHT OUT OVERLAY
+════════════════════════════════════════ -->
+<div id="nightOutOverlay">
+  <div class="night-out-content" id="nightOutContent">
+    <!-- Filled by JS -->
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     NAV
+════════════════════════════════════════ -->
+<nav>
+  <button id="tab-home" class="active" onclick="switchTab('home')">Home</button>
+  <button id="tab-submit" onclick="switchTab('submit')">Submit</button>
+  <button id="tab-data" onclick="switchTab('data')">Data</button>
+</nav>
+
+<!-- ═══════════════════════════════════════
+     HOME TAB
+════════════════════════════════════════ -->
+<div id="tab-home-content" class="tab active">
+  <div class="section-title">This Month</div>
+  <div class="stat-grid" id="homeStatsGrid">
+    <!-- filled by renderHome() -->
+  </div>
+
+  <div class="section-title">Groceries</div>
+  <div class="stat-grid" id="groceriesStatsGrid"></div>
+
+  <div class="section-title">Fuel</div>
+  <div class="stat-grid" id="fuelStatsGrid"></div>
+
+  <div class="section-title">Spending Trend</div>
+  <div class="card">
+    <canvas id="trendChart" height="120" style="width:100%;display:block;"></canvas>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     SUBMIT TAB
+════════════════════════════════════════ -->
+<div id="tab-submit-content" class="tab">
+  <div id="submitAlert"></div>
+
+  <div class="form-group">
+    <label class="form-label" for="expenseText">Describe your expenses</label>
+    <textarea id="expenseText" placeholder="e.g. Spent $52.14 at Wegmans yesterday. $3.80 coffee at Dunkin. Filled up gas — 14.2 gallons at $3.59, drove 310 miles on this tank."></textarea>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Attach image (receipt, bank screenshot)</label>
+    <div class="image-upload-area" onclick="document.getElementById('imageInput').click()">
+      <span id="imageLabel">📷 Tap to add image</span>
+    </div>
+    <input type="file" id="imageInput" accept="image/*,.heic,.heif" multiple onchange="handleImageSelect(event)">
+    <div id="imagePreviewStrip"></div>
+  </div>
+
+  <button class="btn btn-primary btn-full" id="parseBtn" onclick="parseExpenses()">Parse & Log</button>
+
+  <div id="parseLoading" style="display:none;" class="loading-wrap">
+    <div class="spinner"></div> Analyzing with Claude…
+  </div>
+
+  <!-- Preview -->
+  <div id="previewSection" style="display:none;">
+    <div class="section-title" style="margin-top:20px;">Preview — confirm before saving</div>
+    <div class="preview-list" id="previewList"></div>
+    <div class="row-flex" style="margin-top:12px;">
+      <button class="btn btn-success" onclick="confirmAndSave()">Confirm & Save</button>
+      <button class="btn btn-secondary" onclick="cancelPreview()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     DATA TAB
+════════════════════════════════════════ -->
+<div id="tab-data-content" class="tab">
+  <div class="section-title">Transaction Log</div>
+
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search…" oninput="renderData()">
+    <select id="catFilter" onchange="renderData()">
+      <option value="">All categories</option>
+      <option value="groceries">Groceries</option>
+      <option value="dining">Dining</option>
+      <option value="gas">Gas</option>
+      <option value="clothing">Clothing</option>
+      <option value="bars">Bars</option>
+      <option value="subscriptions">Subscriptions</option>
+      <option value="misc">Misc</option>
+    </select>
+  </div>
+
+  <div class="table-scroll">
+    <table class="data-table" id="txTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Label</th>
+          <th>Category</th>
+          <th style="text-align:right">Amount</th>
+        </tr>
+      </thead>
+      <tbody id="txBody"></tbody>
+    </table>
+  </div>
+
+  <div class="section-title">Monthly Summary</div>
+  <div class="table-scroll">
+    <table class="data-table summary-table" id="summaryTable">
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th style="text-align:right">Total</th>
+          <th style="text-align:right">Food ▸</th>
+          <th style="text-align:right">Gas</th>
+          <th style="text-align:right">Clothing</th>
+          <th style="text-align:right">Bars</th>
+          <th style="text-align:right">Subs</th>
+          <th style="text-align:right">Misc</th>
+        </tr>
+      </thead>
+      <tbody id="summaryBody"></tbody>
+    </table>
+  </div>
+
+  <div class="data-footer">
+    <button class="btn btn-secondary" onclick="exportData()">⬇ Export JSON</button>
+    <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">⬆ Import JSON</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    <button class="link-btn" onclick="showChangeKey()">Change API Key</button>
+    <button class="link-btn" onclick="clearAllData()">Clear all data</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     GENERIC MODAL
+════════════════════════════════════════ -->
+<div id="genericModal" class="modal-overlay">
+  <div class="modal">
+    <h2 id="modalTitle"></h2>
+    <p id="modalBody"></p>
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// DATA LAYER
+// ═══════════════════════════════════════
+
+const STORAGE_KEY = 'moneyTrackerData';
+const API_KEY_KEY = 'anthropicApiKey';
+const NIGHTOUT_KEY = 'nightOutHistory';
+const PENDING_KEY  = 'pendingNightOutNotification';
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : { transactions: [] };
+  } catch(e) { return { transactions: [] }; }
+}
+
+function saveData(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+function getApiKey() { return localStorage.getItem(API_KEY_KEY) || ''; }
+
+function loadNightOut() {
+  try { return JSON.parse(localStorage.getItem(NIGHTOUT_KEY)) || {}; } catch { return {}; }
+}
+
+function saveNightOut(obj) { localStorage.setItem(NIGHTOUT_KEY, JSON.stringify(obj)); }
+
+function getPending() {
+  try { return JSON.parse(localStorage.getItem(PENDING_KEY)); } catch { return null; }
+}
+
+function clearPending() { localStorage.removeItem(PENDING_KEY); }
+
+function uuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+
+let pendingTransactions = [];
+let selectedImages = [];
+
+window.addEventListener('DOMContentLoaded', () => {
+  try { localStorage.setItem('_test', '1'); localStorage.removeItem('_test'); }
+  catch(e) { document.body.insertAdjacentHTML('afterbegin', '<div class="alert alert-warning" style="margin:12px 16px;">⚠ localStorage unavailable — data won\'t be saved.</div>'); }
+
+  if (!getApiKey()) {
+    document.getElementById('setupOverlay').classList.add('show');
+  } else {
+    init();
+  }
+});
+
+function init() {
+  renderHome();
+  renderData();
+  checkPendingNotification();
+}
+
+// ═══════════════════════════════════════
+// SETUP / API KEY
+// ═══════════════════════════════════════
+
+function saveApiKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key.startsWith('sk-')) {
+    showSetupError('That doesn\'t look like a valid Anthropic API key (should start with sk-).');
+    return;
+  }
+  localStorage.setItem(API_KEY_KEY, key);
+  document.getElementById('setupOverlay').classList.remove('show');
+  init();
+}
+
+function showSetupError(msg) {
+  const el = document.getElementById('setupError');
+  el.style.display = 'block';
+  el.innerHTML = `<div class="alert alert-error">${msg}</div>`;
+}
+
+function showChangeKey() {
+  showModal('Change API Key',
+    'Enter your new Anthropic API key.',
+    [
+      { label: 'Cancel', cls: 'btn-secondary', action: closeModal },
+      { label: 'Save', cls: 'btn-primary', action: () => {
+        const input = document.getElementById('changeKeyInput');
+        const key = input ? input.value.trim() : '';
+        if (!key.startsWith('sk-')) { alert('Invalid key format.'); return; }
+        localStorage.setItem(API_KEY_KEY, key);
+        closeModal();
+        showSubmitAlert('API key updated.', 'success');
+      }}
+    ],
+    `<div class="form-group" style="margin-top:12px;"><input type="text" id="changeKeyInput" placeholder="sk-ant-..." style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:14px;padding:12px 14px;outline:none;"></div>`
+  );
+}
+
+// ═══════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════
+
+function switchTab(name) {
+  ['home','submit','data'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === name);
+    document.getElementById(`tab-${t}-content`).classList.toggle('active', t === name);
+  });
+  if (name === 'home') renderHome();
+  if (name === 'data') renderData();
+}
+
+// ═══════════════════════════════════════
+// HOME / STATS
+// ═══════════════════════════════════════
+
+function fmt(n) {
+  if (n == null || isNaN(n)) return '—';
+  return '$' + n.toFixed(2);
+}
+
+function fmtN(n, dec=1) {
+  if (n == null || isNaN(n)) return '—';
+  return n.toFixed(dec);
+}
+
+function renderHome() {
+  const { transactions } = loadData();
+  const today = new Date();
+  const curYear = today.getFullYear();
+  const curMonth = today.getMonth();
+
+  const thisMo = transactions.filter(t => {
+    const d = new Date(t.date + 'T12:00:00');
+    return d.getFullYear() === curYear && d.getMonth() === curMonth;
+  });
+
+  const isExpense = t => t.type !== 'gas' || true; // include gas in spending
+  const sum = arr => arr.reduce((s, t) => s + (t.amount || 0), 0);
+
+  // Group by month key
+  const byMonth = {};
+  transactions.forEach(t => {
+    const d = new Date(t.date + 'T12:00:00');
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (!byMonth[key]) byMonth[key] = [];
+    byMonth[key].push(t);
+  });
+
+  const monthKeys = Object.keys(byMonth).sort();
+  const monthlyTotals = monthKeys.map(k => sum(byMonth[k]));
+  const avgMonthly = monthlyTotals.length ? monthlyTotals.reduce((a,b)=>a+b,0)/monthlyTotals.length : null;
+
+  // Weekly
+  const weeklyTotals = [];
+  if (transactions.length) {
+    const sorted = [...transactions].sort((a,b) => a.date.localeCompare(b.date));
+    const start = new Date(sorted[0].date + 'T12:00:00');
+    const end = new Date();
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate()+7)) {
+      const wStart = new Date(d);
+      const wEnd = new Date(d); wEnd.setDate(wEnd.getDate()+7);
+      const wSum = transactions.filter(t => {
+        const td = new Date(t.date + 'T12:00:00');
+        return td >= wStart && td < wEnd;
+      }).reduce((s,t)=>s+(t.amount||0),0);
+      weeklyTotals.push(wSum);
+    }
+  }
+  const avgWeekly = weeklyTotals.length ? weeklyTotals.reduce((a,b)=>a+b,0)/weeklyTotals.length : null;
+
+  // Groceries
+  const thisMoGroc = thisMo.filter(t => t.category === 'groceries');
+  const allGroc = transactions.filter(t => t.category === 'groceries');
+  const grocByMonth = {};
+  allGroc.forEach(t => {
+    const d = new Date(t.date + 'T12:00:00');
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (!grocByMonth[key]) grocByMonth[key] = 0;
+    grocByMonth[key] += t.amount || 0;
+  });
+  const grocMonthlyAvg = Object.values(grocByMonth).length ? Object.values(grocByMonth).reduce((a,b)=>a+b,0)/Object.values(grocByMonth).length : null;
+  const grocWeeklyTotals = [];
+  if (allGroc.length) {
+    const sorted = [...transactions].sort((a,b)=>a.date.localeCompare(b.date));
+    const start = new Date(sorted[0].date + 'T12:00:00');
+    const end = new Date();
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate()+7)) {
+      const wStart = new Date(d); const wEnd = new Date(d); wEnd.setDate(wEnd.getDate()+7);
+      const wSum = allGroc.filter(t=>{const td=new Date(t.date+'T12:00:00');return td>=wStart&&td<wEnd;}).reduce((s,t)=>s+(t.amount||0),0);
+      grocWeeklyTotals.push(wSum);
+    }
+  }
+  const grocWeeklyAvg = grocWeeklyTotals.length ? grocWeeklyTotals.reduce((a,b)=>a+b,0)/grocWeeklyTotals.length : null;
+
+  // Subscriptions
+  const subTotal = transactions.filter(t=>t.category==='subscriptions').reduce((s,t)=>s+(t.amount||0),0);
+
+  // Biggest this month
+  const biggest = thisMo.length ? thisMo.reduce((a,b)=>(a.amount||0)>(b.amount||0)?a:b) : null;
+
+  // Gas
+  const gasEntries = transactions.filter(t=>t.category==='gas'||t.type==='gas');
+  const gasSorted = [...gasEntries].sort((a,b)=>a.date.localeCompare(b.date));
+  let avgDaysBetweenFills = null;
+  if (gasSorted.length >= 2) {
+    let diffs = [];
+    for (let i=1;i<gasSorted.length;i++) {
+      const d1 = new Date(gasSorted[i-1].date+'T12:00:00');
+      const d2 = new Date(gasSorted[i].date+'T12:00:00');
+      diffs.push((d2-d1)/(1000*86400));
+    }
+    avgDaysBetweenFills = diffs.reduce((a,b)=>a+b,0)/diffs.length;
+  }
+  const avgPPG = gasEntries.length ? gasEntries.filter(t=>t.pricePerGallon).reduce((s,t)=>s+(t.pricePerGallon||0),0)/gasEntries.filter(t=>t.pricePerGallon).length : null;
+  const avgMPT = gasEntries.length ? gasEntries.filter(t=>t.milesOnTank).reduce((s,t)=>s+(t.milesOnTank||0),0)/gasEntries.filter(t=>t.milesOnTank).length : null;
+
+  // Bars this month
+  const barsThisMo = thisMo.filter(t=>t.category==='bars').reduce((s,t)=>s+(t.amount||0),0);
+
+  const statsHTML = sc => sc.map(s => `
+    <div class="stat-card${s.wide?' wide':''}">
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-value">${s.value}</div>
+      ${s.sub ? `<div class="stat-sub">${s.sub}</div>` : ''}
+    </div>
+  `).join('');
+
+  document.getElementById('homeStatsGrid').innerHTML = statsHTML([
+    { label: 'Month Spending', value: transactions.length ? fmt(sum(thisMo)) : '—' },
+    { label: 'Avg Monthly', value: avgMonthly != null ? fmt(avgMonthly) : '—' },
+    { label: 'Avg Weekly', value: avgWeekly != null ? fmt(avgWeekly) : '—' },
+    { label: 'Bars This Month', value: barsThisMo ? fmt(barsThisMo) : '—' },
+    { label: 'Subscriptions', value: subTotal ? fmt(subTotal) : '—', sub: 'per month' },
+    { label: 'Biggest This Month', value: biggest ? fmt(biggest.amount) : '—', sub: biggest ? biggest.vendor || '' : '' },
+  ]);
+
+  document.getElementById('groceriesStatsGrid').innerHTML = statsHTML([
+    { label: 'This Month', value: thisMoGroc.length ? fmt(sum(thisMoGroc)) : '—' },
+    { label: 'Avg Monthly', value: grocMonthlyAvg != null ? fmt(grocMonthlyAvg) : '—' },
+    { label: 'Avg Weekly', value: grocWeeklyAvg != null ? fmt(grocWeeklyAvg) : '—' },
+  ]);
+
+  document.getElementById('fuelStatsGrid').innerHTML = statsHTML([
+    { label: 'Avg Days Between', value: avgDaysBetweenFills != null ? fmtN(avgDaysBetweenFills,1)+' days' : '—' },
+    { label: 'Avg Price/Gallon', value: avgPPG != null ? '$'+avgPPG.toFixed(3) : '—' },
+    { label: 'Avg Miles/Tank', value: avgMPT != null ? fmtN(avgMPT,0)+' mi' : '—' },
+  ]);
+
+  renderTrendChart(byMonth);
+}
+
+// ═══════════════════════════════════════
+// TREND CHART (Canvas)
+// ═══════════════════════════════════════
+
+function renderTrendChart(byMonth) {
+  const canvas = document.getElementById('trendChart');
+  const ctx = canvas.getContext('2d');
+  const today = new Date();
+
+  // Last 6 months
+  const months = [];
+  for (let i=5; i>=0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth()-i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const label = d.toLocaleString('default', { month: 'short' });
+    months.push({ key, label, total: (byMonth[key]||[]).reduce((s,t)=>s+(t.amount||0),0) });
+  }
+
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth || 300;
+  const H = 120;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+
+  ctx.clearRect(0, 0, W, H);
+
+  const maxVal = Math.max(...months.map(m=>m.total), 1);
+  const pad = { t: 10, b: 30, l: 8, r: 8 };
+  const barW = (W - pad.l - pad.r) / months.length;
+  const chartH = H - pad.t - pad.b;
+
+  const curMonthKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+
+  months.forEach((m, i) => {
+    const x = pad.l + i * barW;
+    const barH = Math.max(2, (m.total / maxVal) * chartH);
+    const y = pad.t + chartH - barH;
+    const isCurrent = m.key === curMonthKey;
+
+    ctx.fillStyle = isCurrent ? '#5b8dee' : '#2a3050';
+    const radius = 4;
+    const bx = x + barW * 0.15, bw = barW * 0.7;
+    ctx.beginPath();
+    ctx.moveTo(bx + radius, y);
+    ctx.lineTo(bx + bw - radius, y);
+    ctx.quadraticCurveTo(bx + bw, y, bx + bw, y + radius);
+    ctx.lineTo(bx + bw, y + barH);
+    ctx.lineTo(bx, y + barH);
+    ctx.lineTo(bx, y + radius);
+    ctx.quadraticCurveTo(bx, y, bx + radius, y);
+    ctx.fill();
+
+    ctx.fillStyle = isCurrent ? '#e8eaf0' : '#5a6070';
+    ctx.font = '11px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(m.label, x + barW/2, H - pad.b + 16);
+
+    if (m.total > 0) {
+      ctx.fillStyle = isCurrent ? '#5b8dee' : '#5a6070';
+      ctx.font = `${isCurrent ? '600 ' : ''}10px -apple-system, sans-serif`;
+      ctx.fillText('$'+Math.round(m.total), x + barW/2, y - 3);
+    }
+  });
+}
+
+// ═══════════════════════════════════════
+// IMAGE HANDLING
+// ═══════════════════════════════════════
+
+function handleImageSelect(event) {
+  const files = Array.from(event.target.files);
+  selectedImages = files;
+  const strip = document.getElementById('imagePreviewStrip');
+  strip.innerHTML = '';
+  files.forEach(f => {
+    const url = URL.createObjectURL(f);
+    const img = document.createElement('img');
+    img.src = url;
+    img.className = 'img-thumb';
+    strip.appendChild(img);
+  });
+  document.getElementById('imageLabel').textContent = `📷 ${files.length} image${files.length>1?'s':''} selected`;
+}
+
+async function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('Failed to read file'));
+    r.readAsDataURL(file);
+  });
+}
+
+// ═══════════════════════════════════════
+// CLAUDE API / PARSING
+// ═══════════════════════════════════════
+
+async function parseExpenses() {
+  const text = document.getElementById('expenseText').value.trim();
+  if (!text && selectedImages.length === 0) {
+    showSubmitAlert('Please enter some expense text or attach an image.', 'error');
+    return;
+  }
+
+  const apiKey = getApiKey();
+  if (!apiKey) { showSubmitAlert('No API key set. Go to the Data tab to add one.', 'error'); return; }
+
+  document.getElementById('parseBtn').disabled = true;
+  document.getElementById('parseLoading').style.display = 'flex';
+  document.getElementById('previewSection').style.display = 'none';
+  clearSubmitAlert();
+
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0,10);
+  const dayOfWeek = today.toLocaleString('default', { weekday: 'long' });
+
+  const systemPrompt = `You are a financial transaction parser. Today is ${todayStr} (${dayOfWeek}).
+
+Return ONLY a valid JSON array of transaction objects. No markdown, no explanation, no backticks.
+
+Each object must have exactly these fields:
+{
+  "id": "<generate a short unique id>",
+  "date": "YYYY-MM-DD",
+  "amount": <number>,
+  "category": "<one of: groceries, dining, gas, clothing, bars, subscriptions, misc>",
+  "subcategory": "<same as category>",
+  "vendor": "<cleaned vendor name>",
+  "label": "<short human-readable description>",
+  "raw": "<original input snippet>",
+  "type": "expense"
+}
+
+For gas entries, also include: "gallons": <number>, "milesOnTank": <number or null>, "pricePerGallon": <number>, "totalCost": <number>, and set "type": "gas".
+
+CATEGORY RULES:
+- groceries: grocery stores, supermarkets, Costco, Sam's Club, household supplies, cleaning products. Any ambiguous food purchase defaults here.
+- dining: restaurants, fast food, cafes, coffee shops, takeout, DoorDash, Uber Eats, Grubhub
+- gas: fuel purchases
+- clothing: apparel, shoes, accessories
+- bars: bars, nightclubs, liquor stores, brewery taprooms, cover charges, alcohol-related
+- subscriptions: Netflix, Spotify, gym memberships, Amazon Prime, recurring services
+- misc: anything else
+
+VENDOR CLEANING: Normalize messy names. "WEGMANS #0042 STORE" → "Wegmans". "MCDONaLDS 40221" → "McDonald's".
+
+DATE INFERENCE: Infer dates from context relative to today (${todayStr}). "yesterday" = ${new Date(today-86400000).toISOString().slice(0,10)}. "last Friday" = calculate correctly. If no date is inferrable, use today.
+
+GAS + MILEAGE: If the user mentions miles driven on a tank, set milesOnTank to that number. Assume ~12.5 miles of fuel remained when they filled up, so effective range = milesOnTank + 12.5.
+
+Return an empty array [] if nothing can be parsed.`;
+
+  try {
+    const userContent = [];
+    if (text) userContent.push({ type: 'text', text });
+
+    for (const img of selectedImages) {
+      const b64 = await fileToBase64(img);
+      const mtype = img.type || 'image/jpeg';
+      userContent.push({ type: 'image', source: { type: 'base64', media_type: mtype, data: b64 }});
+    }
+    if (userContent.length === 0) throw new Error('No content to parse');
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userContent }]
+      })
+    });
+
+    if (!resp.ok) {
+      const errData = await resp.json().catch(()=>null);
+      throw new Error(errData?.error?.message || `API error ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    const raw = data.content.map(b => b.type === 'text' ? b.text : '').join('').trim();
+
+    let parsed;
+    try {
+      const clean = raw.replace(/^```json\s*/,'').replace(/```\s*$/,'').trim();
+      parsed = JSON.parse(clean);
+    } catch(e) {
+      throw new Error('Could not parse API response as JSON. Raw: ' + raw.slice(0,200));
+    }
+
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      showSubmitAlert('No expenses detected. Try rephrasing your input.', 'info');
+      document.getElementById('parseLoading').style.display = 'none';
+      document.getElementById('parseBtn').disabled = false;
+      return;
+    }
+
+    // Assign UUIDs
+    parsed = parsed.map(t => ({ ...t, id: uuid() }));
+    pendingTransactions = parsed;
+    showPreview(parsed);
+
+  } catch(e) {
+    showSubmitAlert('Error: ' + e.message, 'error');
+  }
+
+  document.getElementById('parseLoading').style.display = 'none';
+  document.getElementById('parseBtn').disabled = false;
+}
+
+function showPreview(txns) {
+  const list = document.getElementById('previewList');
+  list.innerHTML = txns.map(t => `
+    <div class="preview-item">
+      <div class="preview-item-info">
+        <div class="preview-item-label">${escHtml(t.label || t.vendor || '?')}<span class="cat-badge">${escHtml(t.category)}</span></div>
+        <div class="preview-item-meta">${escHtml(t.date)}${t.vendor ? ' · '+escHtml(t.vendor) : ''}${t.milesOnTank ? ' · '+t.milesOnTank+' mi' : ''}</div>
+      </div>
+      <div class="preview-item-amount">${fmt(t.amount)}</div>
+    </div>
+  `).join('');
+  document.getElementById('previewSection').style.display = 'block';
+}
+
+function confirmAndSave() {
+  if (!pendingTransactions.length) return;
+  const data = loadData();
+  data.transactions.push(...pendingTransactions);
+  saveData(data);
+
+  checkNightOutDetection(pendingTransactions);
+
+  pendingTransactions = [];
+  selectedImages = [];
+  document.getElementById('expenseText').value = '';
+  document.getElementById('imageInput').value = '';
+  document.getElementById('imagePreviewStrip').innerHTML = '';
+  document.getElementById('imageLabel').textContent = '📷 Tap to add image';
+  document.getElementById('previewSection').style.display = 'none';
+
+  showSubmitAlert(`Saved! Tap Home to see your updated stats.`, 'success');
+}
+
+function cancelPreview() {
+  pendingTransactions = [];
+  document.getElementById('previewSection').style.display = 'none';
+}
+
+// ═══════════════════════════════════════
+// NIGHT OUT DETECTION
+// ═══════════════════════════════════════
+
+function checkNightOutDetection(newTxns) {
+  const barsTxns = newTxns.filter(t => t.category === 'bars');
+  if (!barsTxns.length) return;
+
+  // Group by date
+  const byDate = {};
+  barsTxns.forEach(t => {
+    if (!byDate[t.date]) byDate[t.date] = 0;
+    byDate[t.date] += t.amount || 0;
+  });
+
+  const nightTotal = Object.values(byDate).reduce((a,b)=>a+b,0);
+  if (!nightTotal) return;
+
+  const nightOut = loadNightOut();
+  const prevTotal = nightOut.lastTotal || null;
+
+  nightOut.previousTotal = prevTotal;
+  nightOut.lastTotal = nightTotal;
+  saveNightOut(nightOut);
+
+  const pending = { total: nightTotal, prev: prevTotal };
+  localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+}
+
+function checkPendingNotification() {
+  const pending = getPending();
+  if (!pending) return;
+  showNightOutModal(pending.total, pending.prev);
+}
+
+function showNightOutModal(total, prev) {
+  const overlay = document.getElementById('nightOutOverlay');
+  const content = document.getElementById('nightOutContent');
+  const isGood = prev !== null && total < prev;
+  const diff = prev !== null ? Math.abs(prev - total) : null;
+
+  overlay.className = 'show ' + (isGood ? 'good' : 'neutral');
+
+  if (isGood) {
+    content.innerHTML = `
+      <div class="night-emoji">🎉</div>
+      <div class="night-headline night-good">NICE WORK</div>
+      <div class="night-sub night-good">You spent <span>${fmt(total)}</span> going out — <span>${fmt(diff)}</span> less than last time</div>
+      <button id="gotItBtn" onclick="dismissNightOut()">GOT IT</button>
+    `;
+    spawnConfetti();
+  } else {
+    content.innerHTML = `
+      <div class="night-emoji">🌙</div>
+      <div class="night-headline night-neutral">Last Night Out</div>
+      <div class="night-sub" style="color:var(--text2);">Cost you <strong style="color:var(--text)">${fmt(total)}</strong>${prev !== null ? `<br><span style="font-size:15px;"> ${fmt(diff)} more than last time</span>` : ''}</div>
+      <button id="gotItBtn" onclick="dismissNightOut()">GOT IT</button>
+    `;
+  }
+
+  overlay.style.display = 'flex';
+}
+
+function dismissNightOut() {
+  clearPending();
+  document.getElementById('nightOutOverlay').style.display = 'none';
+  // Remove confetti
+  document.querySelectorAll('.confetti-piece').forEach(el => el.remove());
+}
+
+function spawnConfetti() {
+  const colors = ['#5b8dee','#3ecf8e','#f0b429','#f06a6a','#c084fc','#fb923c'];
+  for (let i = 0; i < 80; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    const left = Math.random() * 100;
+    const dur = 1.8 + Math.random() * 1.4;
+    const delay = Math.random() * 1.2;
+    el.style.cssText = `
+      left: ${left}vw;
+      top: -10px;
+      background: ${colors[Math.floor(Math.random()*colors.length)]};
+      --dur: ${dur}s;
+      --delay: ${delay}s;
+      width: ${6+Math.random()*6}px;
+      height: ${6+Math.random()*6}px;
+      transform: rotate(${Math.random()*360}deg);
+    `;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), (dur + delay + 0.5) * 1000);
+  }
+}
+
+// ═══════════════════════════════════════
+// DATA TAB
+// ═══════════════════════════════════════
+
+function renderData() {
+  const { transactions } = loadData();
+  const q = (document.getElementById('searchInput')?.value||'').toLowerCase();
+  const cat = document.getElementById('catFilter')?.value || '';
+
+  let filtered = [...transactions].sort((a,b) => b.date.localeCompare(a.date));
+  if (q) filtered = filtered.filter(t =>
+    (t.label||'').toLowerCase().includes(q) ||
+    (t.vendor||'').toLowerCase().includes(q) ||
+    (t.category||'').toLowerCase().includes(q)
+  );
+  if (cat) filtered = filtered.filter(t => t.category === cat);
+
+  const tbody = document.getElementById('txBody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="empty-state-icon">${transactions.length ? '🔍' : '💳'}</div><div class="empty-state-title">${transactions.length ? 'No results' : 'No transactions yet'}</div><div class="empty-state-desc">${transactions.length ? 'Try a different search or filter.' : 'Use the Submit tab to log your first expense.'}</div></div></td></tr>`;
+  } else {
+    tbody.innerHTML = filtered.map(t => `
+      <tr>
+        <td style="white-space:nowrap;color:var(--text2);font-size:12px;">${t.date}</td>
+        <td>${escHtml(t.label || t.vendor || '—')}</td>
+        <td><span class="cat-badge">${escHtml(t.category||'—')}</span></td>
+        <td class="amount-col">${fmt(t.amount)}</td>
+      </tr>
+    `).join('');
+  }
+
+  renderSummaryTable(transactions);
+}
+
+function renderSummaryTable(transactions) {
+  const byMonth = {};
+  transactions.forEach(t => {
+    const d = new Date(t.date + 'T12:00:00');
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (!byMonth[key]) byMonth[key] = [];
+    byMonth[key].push(t);
+  });
+
+  const keys = Object.keys(byMonth).sort().reverse();
+  const tbody = document.getElementById('summaryBody');
+
+  if (!keys.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text2);padding:20px;">No data yet</td></tr>`;
+    return;
+  }
+
+  const rows = keys.map(k => {
+    const txns = byMonth[k];
+    const sum = cat => txns.filter(t=>t.category===cat).reduce((s,t)=>s+(t.amount||0),0);
+    const total = txns.reduce((s,t)=>s+(t.amount||0),0);
+    const groc = sum('groceries');
+    const dining = sum('dining');
+    const food = groc + dining;
+    const gas = sum('gas');
+    const cloth = sum('clothing');
+    const bars = sum('bars');
+    const subs = sum('subscriptions');
+    const misc = sum('misc');
+    const label = new Date(k+'-15').toLocaleString('default',{month:'short',year:'numeric'});
+    const isOpen = false;
+    return { k, label, total, food, groc, dining, gas, cloth, bars, subs, misc };
+  });
+
+  tbody.innerHTML = rows.map((r,i) => `
+    <tr class="food-parent summary-row-month" onclick="toggleFoodRow(${i})">
+      <td>${r.label}</td>
+      <td style="text-align:right">${fmt(r.total)}</td>
+      <td style="text-align:right"><span class="toggle-arrow" id="arrow-${i}">▶</span>${fmt(r.food)}</td>
+      <td style="text-align:right">${r.gas?fmt(r.gas):'—'}</td>
+      <td style="text-align:right">${r.cloth?fmt(r.cloth):'—'}</td>
+      <td style="text-align:right">${r.bars?fmt(r.bars):'—'}</td>
+      <td style="text-align:right">${r.subs?fmt(r.subs):'—'}</td>
+      <td style="text-align:right">${r.misc?fmt(r.misc):'—'}</td>
+    </tr>
+    <tr class="food-child" id="food-child-groc-${i}">
+      <td>↳ Groceries</td>
+      <td></td>
+      <td style="text-align:right">${fmt(r.groc)}</td>
+      <td></td><td></td><td></td><td></td><td></td>
+    </tr>
+    <tr class="food-child" id="food-child-dining-${i}">
+      <td>↳ Dining</td>
+      <td></td>
+      <td style="text-align:right">${fmt(r.dining)}</td>
+      <td></td><td></td><td></td><td></td><td></td>
+    </tr>
+  `).join('');
+}
+
+function toggleFoodRow(i) {
+  const groc = document.getElementById(`food-child-groc-${i}`);
+  const dining = document.getElementById(`food-child-dining-${i}`);
+  const arrow = document.getElementById(`arrow-${i}`);
+  const isOpen = groc.classList.contains('expanded');
+  groc.classList.toggle('expanded', !isOpen);
+  dining.classList.toggle('expanded', !isOpen);
+  arrow.classList.toggle('open', !isOpen);
+}
+
+// ═══════════════════════════════════════
+// EXPORT / IMPORT
+// ═══════════════════════════════════════
+
+function exportData() {
+  const data = loadData();
+  const nightOut = loadNightOut();
+  const payload = { ...data, nightOutHistory: nightOut };
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `money-tracker-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const incoming = JSON.parse(e.target.result);
+      if (!incoming.transactions) { alert('Invalid backup file.'); return; }
+
+      showModal('Import Data', 'How would you like to import?', [
+        { label: 'Cancel', cls: 'btn-secondary', action: closeModal },
+        { label: 'Merge', cls: 'btn-primary', action: () => {
+          const cur = loadData();
+          const existingIds = new Set(cur.transactions.map(t=>t.id));
+          const newTxns = incoming.transactions.filter(t=>!existingIds.has(t.id));
+          cur.transactions.push(...newTxns);
+          saveData(cur);
+          if (incoming.nightOutHistory) saveNightOut(incoming.nightOutHistory);
+          closeModal(); renderHome(); renderData();
+          showSubmitAlert(`Merged ${newTxns.length} new transactions.`, 'success');
+        }},
+        { label: 'Replace All', cls: 'btn-danger', action: () => {
+          saveData({ transactions: incoming.transactions });
+          if (incoming.nightOutHistory) saveNightOut(incoming.nightOutHistory);
+          closeModal(); renderHome(); renderData();
+          showSubmitAlert('Data replaced.', 'success');
+        }}
+      ]);
+    } catch(err) { alert('Failed to parse JSON file: ' + err.message); }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function clearAllData() {
+  showModal('Clear All Data', 'This will permanently delete all transactions. This cannot be undone.', [
+    { label: 'Cancel', cls: 'btn-secondary', action: closeModal },
+    { label: 'Delete Everything', cls: 'btn-danger', action: () => {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(NIGHTOUT_KEY);
+      localStorage.removeItem(PENDING_KEY);
+      closeModal(); renderHome(); renderData();
+    }}
+  ]);
+}
+
+// ═══════════════════════════════════════
+// GENERIC MODAL
+// ═══════════════════════════════════════
+
+function showModal(title, body, actions, extraHTML) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = body + (extraHTML||'');
+  const actEl = document.getElementById('modalActions');
+  actEl.innerHTML = '';
+  actions.forEach(a => {
+    const btn = document.createElement('button');
+    btn.className = `btn ${a.cls}`;
+    btn.textContent = a.label;
+    btn.onclick = a.action;
+    actEl.appendChild(btn);
+  });
+  document.getElementById('genericModal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('genericModal').classList.remove('show');
+}
+
+document.getElementById('genericModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+// ═══════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════
+
+function showSubmitAlert(msg, type) {
+  const el = document.getElementById('submitAlert');
+  el.innerHTML = `<div class="alert alert-${type}">${escHtml(msg)}</div>`;
+  setTimeout(() => { if (el.innerHTML.includes(escHtml(msg))) el.innerHTML = ''; }, 6000);
+}
+
+function clearSubmitAlert() {
+  document.getElementById('submitAlert').innerHTML = '';
+}
+
+function escHtml(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// API key input: allow pressing Enter
+document.getElementById('apiKeyInput')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveApiKey();
+});
+</script>
+</body>
+</html>
